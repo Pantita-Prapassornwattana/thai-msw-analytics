@@ -13,7 +13,9 @@ st.set_page_config(
 )
 
 st.title("🗺️ การวิเคราะห์การกระจายตัวเชิงพื้นที่ (Spatial Analytics)")
-st.caption("เจาะลึกความเข้มข้นของปริมาณขยะรายภูมิภาคและรายจังหวัดด้วย Treemap")
+st.caption(
+    "เจาะลึกความเข้มข้นของปริมาณขยะรายภูมิภาคและรายจังหวัดด้วย Treemap"
+)
 
 # =========================================================
 # LOAD DATA
@@ -29,8 +31,16 @@ if df.empty:
 # =========================================================
 st.sidebar.header("⚙️ ตัวกรองเชิงพื้นที่")
 
-years = sorted(df["year_be"].dropna().unique(), reverse=True)
-selected_year = st.sidebar.selectbox("📅 เลือกปี พ.ศ.", years, index=0)
+years = sorted(
+    df["year_be"].dropna().unique(),
+    reverse=True
+)
+
+selected_year = st.sidebar.selectbox(
+    "📅 เลือกปี พ.ศ.",
+    years,
+    index=0
+)
 
 metric_options = {
     "🗑️ ขยะที่เกิดขึ้น": "generated_ton_day",
@@ -41,70 +51,227 @@ metric_options = {
 }
 
 selected_metric_label = st.sidebar.selectbox(
-    "📊 เลือกตัวแปรที่ต้องการวิเคราะห์", list(metric_options.keys())
+    "📊 เลือกตัวแปรที่ต้องการวิเคราะห์",
+    list(metric_options.keys())
 )
+
 selected_metric = metric_options[selected_metric_label]
 
+# =========================================================
+# FILTER DATA
+# =========================================================
 df_year = df[
-    (df["year_be"] == selected_year) & (df["province_display"] != "ไม่ระบุ")
+    (df["year_be"] == selected_year)
+    & (df["province_display"] != "ไม่ระบุ")
 ].copy()
 
 if df_year.empty:
-    st.warning(f"⚠️ ไม่พบข้อมูลสำหรับปี พ.ศ. {selected_year}")
+    st.warning(
+        f"⚠️ ไม่พบข้อมูลสำหรับปี พ.ศ. {selected_year}"
+    )
     st.stop()
 
 # =========================================================
-# 1. SPATIAL TREEMAP (HERO VISUAL)
+# 1. SPATIAL TREEMAP
 # =========================================================
 st.markdown("---")
-st.subheader(f"🧩 สัดส่วนเชิงพื้นที่: {selected_metric_label} (พ.ศ. {int(selected_year)})")
-st.caption("ขนาดของกล่องสี่เหลี่ยมแทนปริมาณขยะ สามารถกดคลิกที่กล่องภูมิภาคเพื่อเจาะลึกรายจังหวัดได้")
 
+st.subheader(
+    f"🧩 สัดส่วนเชิงพื้นที่: "
+    f"{selected_metric_label} "
+    f"(พ.ศ. {int(selected_year)})"
+)
+
+st.caption(
+    "ขนาดของกล่องสี่เหลี่ยมแทนปริมาณขยะ "
+    "สามารถกดคลิกที่กล่องภูมิภาคเพื่อเจาะลึกรายจังหวัดได้"
+)
+
+# =========================================================
+# CREATE TREEMAP
+# =========================================================
 fig_treemap = px.treemap(
     df_year,
-    path=[px.Constant("ประเทศไทย"), "region_display", "province_display"],
+    path=[
+        px.Constant("ประเทศไทย"),
+        "region_display",
+        "province_display"
+    ],
     values=selected_metric,
     color=selected_metric,
-    color_continuous_scale="Reds",
+
+    # =====================================================
+    # SOFT GREEN COLOR SCALE
+    # =====================================================
+    color_continuous_scale=[
+        [0.00, "#DDF3E4"],
+        [0.20, "#BFE5C9"],
+        [0.40, "#9BD3AD"],
+        [0.60, "#70BC8D"],
+        [0.80, "#45A66D"],
+        [1.00, "#287A50"],
+    ],
+
     hover_data=[selected_metric],
 )
-fig_treemap.update_traces(
-    root_color="lightgrey",
-    hovertemplate="<b>%{label}</b><br>ปริมาณ: %{value:,.2f} ตัน/วัน<extra></extra>",
-)
-fig_treemap.update_layout(height=550, margin=dict(t=20, l=10, r=10, b=10))
 
-st.plotly_chart(fig_treemap, use_container_width=True)
+# =========================================================
+# TREEMAP STYLE
+# =========================================================
+fig_treemap.update_traces(
+    # -----------------------------------------------------
+    # Background ของประเทศไทย
+    # -----------------------------------------------------
+    root_color="#F3F8F4",
+
+    # -----------------------------------------------------
+    # ขอบของแต่ละกล่อง
+    # -----------------------------------------------------
+    marker=dict(
+        line=dict(
+            color="#FFFFFF",
+            width=1.5
+        )
+    ),
+
+    # -----------------------------------------------------
+    # ตัวอักษร
+    # -----------------------------------------------------
+    textfont=dict(
+        size=13
+    ),
+
+    # -----------------------------------------------------
+    # Hover
+    # -----------------------------------------------------
+    hovertemplate=(
+        "<b>%{label}</b><br>"
+        "ปริมาณ: %{value:,.2f} ตัน/วัน"
+        "<extra></extra>"
+    ),
+)
+
+# =========================================================
+# TREEMAP LAYOUT
+# =========================================================
+fig_treemap.update_layout(
+    height=550,
+
+    margin=dict(
+        t=15,
+        l=5,
+        r=5,
+        b=5
+    ),
+
+    # พื้นหลังโปร่งใส
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+
+    # =====================================================
+    # COLOR BAR
+    # =====================================================
+    coloraxis_colorbar=dict(
+        title="ปริมาณ",
+
+        thickness=12,
+        len=0.65,
+
+        outlinewidth=0,
+
+        tickfont=dict(
+            size=11
+        ),
+
+        title_font=dict(
+            size=12
+        ),
+    ),
+)
+
+# =========================================================
+# DISPLAY TREEMAP
+# =========================================================
+st.plotly_chart(
+    fig_treemap,
+    use_container_width=True
+)
 
 # =========================================================
 # 2. REGIONAL COMPARISON TABLE & HOTSPOTS
 # =========================================================
 st.markdown("---")
+
 col_reg, col_top = st.columns([1, 1])
 
+# =========================================================
+# REGIONAL SUMMARY
+# =========================================================
 with col_reg:
+
     st.subheader("📍 สรุปปริมาณแยกรายภาค")
+
     reg_summary = (
-        df_year.groupby("region_display")[selected_metric]
+        df_year
+        .groupby("region_display")[selected_metric]
         .sum()
         .reset_index()
-        .sort_values(by=selected_metric, ascending=False)
+        .sort_values(
+            by=selected_metric,
+            ascending=False
+        )
     )
-    reg_summary.columns = ["ภูมิภาค", "ปริมาณรวม (ตัน/วัน)"]
+
+    reg_summary.columns = [
+        "ภูมิภาค",
+        "ปริมาณรวม (ตัน/วัน)"
+    ]
+
     st.dataframe(
-        reg_summary.style.format({"ปริมาณรวม (ตัน/วัน)": "{:,.2f}"}),
+        reg_summary.style.format(
+            {
+                "ปริมาณรวม (ตัน/วัน)": "{:,.2f}"
+            }
+        ),
         use_container_width=True,
         hide_index=True,
     )
 
+# =========================================================
+# TOP 5 HOTSPOTS
+# =========================================================
 with col_top:
-    st.subheader("🔥 5 จังหวัด Hotspot ที่มีปริมาณสูงสุด")
-    top5_prov = df_year.nlargest(5, selected_metric)[
-        ["province_display", "region_display", selected_metric]
+
+    st.subheader(
+        "🔥 5 จังหวัด Hotspot ที่มีปริมาณสูงสุด"
+    )
+
+    top5_prov = (
+        df_year
+        .nlargest(
+            5,
+            selected_metric
+        )[
+            [
+                "province_display",
+                "region_display",
+                selected_metric
+            ]
+        ]
+    )
+
+    top5_prov.columns = [
+        "จังหวัด",
+        "ภูมิภาค",
+        "ปริมาณ (ตัน/วัน)"
     ]
-    top5_prov.columns = ["จังหวัด", "ภูมิภาค", "ปริมาณ (ตัน/วัน)"]
+
     st.dataframe(
-        top5_prov.style.format({"ปริมาณ (ตัน/วัน)": "{:,.2f}"}),
+        top5_prov.style.format(
+            {
+                "ปริมาณ (ตัน/วัน)": "{:,.2f}"
+            }
+        ),
         use_container_width=True,
         hide_index=True,
     )
