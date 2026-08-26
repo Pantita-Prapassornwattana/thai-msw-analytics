@@ -1,0 +1,3 @@
+﻿province_name,year_be,issue,detail
+กาญจนบุรี,2562,sum_components_mismatch,generated=899.02 vs sum(recycle+correct+incorrect)=845.02 (diff 6.0%)
+กาญจนบุรี,2562,pct_sum_not_100,pct_sum=94.0%
