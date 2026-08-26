@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 
-from utils import load_clean_data
+from utils import load_clean_data, filter_and_aggregate_by_year
 
 
 # =========================================================
@@ -92,9 +92,12 @@ available_years = sorted(
     reverse=True
 )
 
+# 🛠️ เพิ่มตัวเลือก "ทั้งหมด (ค่าเฉลี่ยทุกปี)" เข้าไปใน Selectbox
+year_options = ["ทั้งหมด (ค่าเฉลี่ยทุกปี)"] + list(available_years)
+
 selected_year = st.sidebar.selectbox(
     "📅 เลือกปี พ.ศ.",
-    available_years
+    year_options
 )
 
 k_clusters = st.sidebar.slider(
@@ -118,15 +121,25 @@ st.sidebar.markdown("""
 
 
 # =========================================================
-# Filter Year
+# Filter Year (ใช้ filter_and_aggregate_by_year ด้วย agg_func="mean")
 # =========================================================
-df_ml = valid_df[
-    valid_df["year_be"] == selected_year
-].copy()
+# 🛠️ หากเลือก "ทั้งหมด" จะยุบข้อมูลหาค่าเฉลี่ยรายจังหวัด
+df_ml = filter_and_aggregate_by_year(
+    valid_df[valid_df["province_display"] != "ไม่ระบุ"],
+    selected_year,
+    group_by_cols=["province_display"],
+    agg_func="mean"
+)
+
+# กำหนด Label กำกับหน้าจอ
+if selected_year == "ทั้งหมด (ค่าเฉลี่ยทุกปี)":
+    year_label = "ค่าเฉลี่ยทุกปีสะสม"
+else:
+    year_label = f"ปี พ.ศ. {int(selected_year)}"
 
 if len(df_ml) < k_clusters:
     st.warning(
-        f"⚠️ ปี พ.ศ. {selected_year} มีข้อมูลเพียง "
+        f"⚠️ ตัวเลือก {selected_year} มีข้อมูลเพียง "
         f"{len(df_ml)} จังหวัด "
         f"ซึ่งน้อยกว่าจำนวน Cluster ({k_clusters})"
     )
@@ -191,7 +204,7 @@ else:
 # KPI
 # =========================================================
 st.subheader(
-    f"📊 ภาพรวมการจัดกลุ่ม ปี พ.ศ. {int(selected_year)}"
+    f"📊 ภาพรวมการจัดกลุ่ม ({year_label})"
 )
 
 col1, col2, col3, col4 = st.columns(4)
@@ -261,7 +274,7 @@ with col1:
         },
         title=(
             f"K-Means Clustering "
-            f"ปี พ.ศ. {int(selected_year)}"
+            f"({year_label})"
         )
     )
 

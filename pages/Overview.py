@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from utils import load_clean_data
+from utils import load_clean_data, filter_and_aggregate_by_year
 
 # =========================================================
 # PAGE CONFIG
@@ -28,16 +28,25 @@ st.title("🏠 ภาพรวมสถานการณ์ขยะมูล�
 st.caption("Executive Summary Dashboard สำหรับผู้บริหารและนักนโยบาย")
 
 # =========================================================
-# SIDEBAR
+# SIDEBAR & FILTERING (ปรับแก้เพื่อรองรับตัวเลือก "ทั้งหมด")
 # =========================================================
 st.sidebar.header("⚙️ ตัวกรองข้อมูล")
 years = sorted(df["year_be"].dropna().unique())
-selected_year = st.sidebar.selectbox("📅 เลือกปี พ.ศ.", years, index=len(years) - 1)
 
-filtered = df[df["year_be"] == selected_year].copy()
+# 🛠️ เพิ่ม "ทั้งหมด" เข้าไปในลิสต์ตัวเลือก
+year_options = ["ทั้งหมด"] + list(years)
+selected_year = st.sidebar.selectbox("📅 เลือกปี พ.ศ.", year_options, index=len(year_options) - 1)
+
+# 🛠️ เรียกใช้ฟังก์ชันกรองข้อมูลและกำหนดชื่อปีแสดงผล
+filtered = filter_and_aggregate_by_year(df, selected_year, group_by_cols=["province_display"])
+
+if selected_year == "ทั้งหมด":
+    year_label = "ทุกปีสะสม (รวมทั้งหมด)"
+else:
+    year_label = f"ประจำปี พ.ศ. {int(selected_year)}"
 
 if filtered.empty:
-    st.warning(f"⚠️ ไม่พบข้อมูลในปี พ.ศ. {int(selected_year)}")
+    st.warning(f"⚠️ ไม่พบข้อมูลสำหรับตัวเลือก {selected_year}")
     st.stop()
 
 # =========================================================
@@ -57,7 +66,7 @@ incorrect_pct = (total_inc / total_gen * 100) if total_gen and total_gen > 0 els
 # 1. EXECUTIVE KPI CARDS
 # =========================================================
 st.markdown("---")
-st.subheader(f"📊 สรุปตัวเลขสำคัญ ประจำปี พ.ศ. {int(selected_year)}")
+st.subheader(f"📊 สรุปตัวเลขสำคัญ {year_label}")
 
 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
@@ -91,7 +100,7 @@ with col_alert2:
 # 3. HIGH-LEVEL MANAGEMENT BREAKDOWN (DONUT CHART ONLY)
 # =========================================================
 st.markdown("---")
-st.subheader(f"♻️ โครงสร้างการจัดการขยะมูลฝอย (ปี พ.ศ. {int(selected_year)})")
+st.subheader(f"♻️ โครงสร้างการจัดการขยะมูลฝอย ({year_label})")
 
 mgr_data = pd.DataFrame({
     "วิธีการจัดการ": ["นำกลับมาใช้ประโยชน์", "กำจัดถูกต้อง", "กำจัดไม่ถูกต้อง"],

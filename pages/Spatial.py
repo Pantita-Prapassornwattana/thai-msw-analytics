@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from utils import load_clean_data
+from utils import load_clean_data, filter_and_aggregate_by_year
 
 # =========================================================
 # PAGE CONFIG
@@ -36,9 +36,12 @@ years = sorted(
     reverse=True
 )
 
+# 🛠️ เพิ่มตัวเลือก "ทั้งหมด" เข้าไปในลิสต์
+year_options = ["ทั้งหมด"] + list(years)
+
 selected_year = st.sidebar.selectbox(
     "📅 เลือกปี พ.ศ.",
-    years,
+    year_options,
     index=0
 )
 
@@ -58,16 +61,24 @@ selected_metric_label = st.sidebar.selectbox(
 selected_metric = metric_options[selected_metric_label]
 
 # =========================================================
-# FILTER DATA
+# FILTER DATA (ใช้ filter_and_aggregate_by_year)
 # =========================================================
-df_year = df[
-    (df["year_be"] == selected_year)
-    & (df["province_display"] != "ไม่ระบุ")
-].copy()
+# กรองข้อมูลและ GroupBy ตามจังหวัดเมื่อเลือก "ทั้งหมด"
+df_year = filter_and_aggregate_by_year(
+    df[df["province_display"] != "ไม่ระบุ"],
+    selected_year,
+    group_by_cols=["province_display"]
+)
+
+# กำหนดข้อความแสดงปีให้รองรับ "ทั้งหมด"
+if selected_year == "ทั้งหมด":
+    year_label = "ทุกปีสะสม (รวมทั้งหมด)"
+else:
+    year_label = f"พ.ศ. {int(selected_year)}"
 
 if df_year.empty:
     st.warning(
-        f"⚠️ ไม่พบข้อมูลสำหรับปี พ.ศ. {selected_year}"
+        f"⚠️ ไม่พบข้อมูลสำหรับตัวเลือก {selected_year}"
     )
     st.stop()
 
@@ -79,7 +90,7 @@ st.markdown("---")
 st.subheader(
     f"🧩 สัดส่วนเชิงพื้นที่: "
     f"{selected_metric_label} "
-    f"(พ.ศ. {int(selected_year)})"
+    f"({year_label})"
 )
 
 st.caption(
@@ -119,14 +130,8 @@ fig_treemap = px.treemap(
 # TREEMAP STYLE
 # =========================================================
 fig_treemap.update_traces(
-    # -----------------------------------------------------
-    # Background ของประเทศไทย
-    # -----------------------------------------------------
     root_color="#F3F8F4",
 
-    # -----------------------------------------------------
-    # ขอบของแต่ละกล่อง
-    # -----------------------------------------------------
     marker=dict(
         line=dict(
             color="#FFFFFF",
@@ -134,16 +139,10 @@ fig_treemap.update_traces(
         )
     ),
 
-    # -----------------------------------------------------
-    # ตัวอักษร
-    # -----------------------------------------------------
     textfont=dict(
         size=13
     ),
 
-    # -----------------------------------------------------
-    # Hover
-    # -----------------------------------------------------
     hovertemplate=(
         "<b>%{label}</b><br>"
         "ปริมาณ: %{value:,.2f} ตัน/วัน"
@@ -164,25 +163,17 @@ fig_treemap.update_layout(
         b=5
     ),
 
-    # พื้นหลังโปร่งใส
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
 
-    # =====================================================
-    # COLOR BAR
-    # =====================================================
     coloraxis_colorbar=dict(
         title="ปริมาณ",
-
         thickness=12,
         len=0.65,
-
         outlinewidth=0,
-
         tickfont=dict(
             size=11
         ),
-
         title_font=dict(
             size=12
         ),

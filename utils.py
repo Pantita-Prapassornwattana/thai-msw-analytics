@@ -29,13 +29,6 @@ def load_clean_data():
         if col in waste.columns:
             waste[col] = pd.to_numeric(waste[col], errors="coerce")
 
-    # (โค้ดการ Merge ส่วนที่เหลือคงเดิม...)
-
-    # 🛠️ [เพิ่มจุดนี้] กรองเฉพาะปี พ.ศ. ที่ถูกต้อง (ตัดปีอนาคต หรือปีที่เป็นขยะข้อมูลออก)
-    # เช่น เอาเฉพาะปี พ.ศ. ตั้งแต่ 2550 ถึงไม่เกิน 2567
-    if "year_be" in waste.columns:
-        waste = waste[(waste["year_be"] >= 2550) & (waste["year_be"] <= 2567)]
-
     # Standardize string keys
     waste["province_code"] = waste["province_code"].astype(str).str.strip()
     province["province_code"] = province["province_code"].astype(str).str.strip()
@@ -67,3 +60,52 @@ def load_clean_data():
         waste["region_display"] = "ไม่ระบุ"
 
     return waste
+
+
+# =========================================================
+# 🛠️ ฟังก์ชันสำหรับกรองข้อมูลปี (กรองปีเฉพาะ หรือ รวมทุกปี)
+# =========================================================
+def filter_and_aggregate_by_year(df, selected_year, group_by_cols=None, agg_func="sum"):
+    """
+    ฟังก์ชันช่วยจัดการตัวเลือกปี:
+    - ถ้าเลือก "ทั้งหมด" หรือมีคำว่า "ทั้งหมด": 
+        * หากระบุ group_by_cols จะทำ GroupBy เพื่อหา sum หรือ mean รายจังหวัด
+        * หากไม่ระบุ group_by_cols จะคืนค่า dataframe ทั้งหมด
+    - ถ้าเลือกปี พ.ศ. เฉพาะ: กรองเอาข้อมูลเฉพาะปีนั้น
+    """
+    if df.empty:
+        return df.copy()
+
+    # เช็กเงื่อนไขว่าผู้ใช้เลือกตัวเลือก "ทั้งหมด" หรือไม่
+    is_all = False
+    if isinstance(selected_year, str) and "ทั้งหมด" in selected_year:
+        is_all = True
+    elif selected_year == "ทั้งหมด":
+        is_all = True
+
+    if is_all:
+        if group_by_cols:
+            # รายการคอลัมน์ตัวเลขที่ต้องการรวม/หาค่าเฉลี่ย
+            num_cols = [
+                "generated_ton_day", "recycled_ton_day", 
+                "disposed_correct_ton_day", "disposed_incorrect_ton_day", 
+                "residual_ton"
+            ]
+            valid_num_cols = [c for c in num_cols if c in df.columns]
+
+            # คำนวณ Sum หรือ Mean
+            if agg_func == "mean":
+                agg_df = df.groupby(group_by_cols, as_index=False)[valid_num_cols].mean()
+            else:
+                agg_df = df.groupby(group_by_cols, as_index=False)[valid_num_cols].sum()
+
+            # ดึงข้อมูล region_display กลับมาผูกคืนกรณี GroupBy แค่รายจังหวัด
+            if "province_display" in group_by_cols and "region_display" in df.columns and "region_display" not in agg_df.columns:
+                ref_map = df.drop_duplicates(subset=["province_display"])[["province_display", "region_display"]]
+                agg_df = agg_df.merge(ref_map, on="province_display", how="left")
+
+            return agg_df
+        return df.copy()
+    else:
+        # กรณีกรองเฉพาะปี เช่น 2565
+        return df[df["year_be"] == int(selected_year)].copy()
