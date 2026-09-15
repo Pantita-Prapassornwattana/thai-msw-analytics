@@ -390,9 +390,9 @@ st.plotly_chart(
 # =========================================================
 st.markdown("---")
 
-st.subheader("🧠 ลักษณะของแต่ละกลุ่ม")
+st.subheader("🧠 ลักษณะเฉพาะของแต่ละกลุ่ม")
 
-# สร้างตารางสรุปใหม่
+# สร้างตารางสรุป
 interpretation = (
     df_ml.groupby("Cluster")
     .agg({
@@ -403,7 +403,6 @@ interpretation = (
     .reset_index()
 )
 
-# เปลี่ยนชื่อคอลัมน์หลังจาก aggregate
 interpretation.columns = [
     "Cluster",
     "จำนวนจังหวัด",
@@ -411,65 +410,47 @@ interpretation.columns = [
     "รีไซเคิลเฉลี่ย"
 ]
 
-# ค่าเฉลี่ยรวมของทุกจังหวัด
+# คำนวณค่าเฉลี่ยภาพรวมและส่วนเบี่ยงเบนมาตรฐาน (หรือใช้ค่ามัธยฐาน/เกณฑ์กลาง)
 overall_generated = df_ml["generated_ton_day"].mean()
 overall_recycled = df_ml["recycled_ton_day"].mean()
 
-
 for _, row in interpretation.iterrows():
-
     cluster_name = row["Cluster"]
-
     generated = row["ขยะเกิดเฉลี่ย"]
     recycled = row["รีไซเคิลเฉลี่ย"]
-
     province_count = row["จำนวนจังหวัด"]
 
+    # คำนวณสัดส่วนการรีไซเคิลเทียบกับขยะที่เกิดขึ้น (%) ของกลุ่มนี้
+    recycle_ratio = (recycled / generated * 100) if generated > 0 else 0
+
     # -----------------------------------------
-    # วิเคราะห์ลักษณะของ Cluster
+    # วิเคราะห์ลักษณะเฉพาะแบบละเอียดและแตกต่าง
     # -----------------------------------------
-    if (
-        generated >= overall_generated
-        and recycled >= overall_recycled
-    ):
-        description = (
-            "มีปริมาณขยะเกิดขึ้นสูง "
-            "และมีการนำกลับมาใช้ประโยชน์สูง"
-        )
-
-    elif (
-        generated >= overall_generated
-        and recycled < overall_recycled
-    ):
-        description = (
-            "มีปริมาณขยะเกิดขึ้นสูง "
-            "แต่มีการนำกลับมาใช้ประโยชน์ค่อนข้างต่ำ"
-        )
-
-    elif (
-        generated < overall_generated
-        and recycled >= overall_recycled
-    ):
-        description = (
-            "มีปริมาณขยะเกิดขึ้นไม่สูงมาก "
-            "แต่มีการนำกลับมาใช้ประโยชน์ในระดับสูง"
-        )
-
+    if generated >= overall_generated * 1.5:
+        size_desc = "กลุ่มเมืองใหญ่ / พื้นที่เศรษฐกิจหนาแน่น"
+    elif generated >= overall_generated:
+        size_desc = "กลุ่มเมืองขนาดกลาง / มีปริมาณขยะค่อนข้างสูง"
     else:
-        description = (
-            "มีปริมาณขยะเกิดขึ้นและการนำกลับมาใช้ประโยชน์ "
-            "อยู่ในระดับค่อนข้างต่ำ"
-        )
+        size_desc = "กลุ่มเมืองขนาดเล็ก / ชุมชนท้องถิ่น"
 
-    # -----------------------------------------
-    # แสดงผล
-    # -----------------------------------------
+    if recycle_ratio >= 35:
+        recycle_desc = "บริหารจัดการและนำกลับมาใช้ประโยชน์ได้ดีเยี่ยม (High Recovery Rate)"
+    elif recycle_ratio >= 20:
+        recycle_desc = "มีการนำกลับมาใช้ประโยชน์ในระดับปานกลาง"
+    else:
+        recycle_desc = "มีการนำกลับมาใช้ประโยชน์ค่อนข้างน้อย ควรส่งเสริมการจัดการเพิ่มเติม"
+
+    # จัดทำประโยคสรุปเอกลักษณ์
+    description = f"{size_desc} — {recycle_desc} (อัตราการรีไซเคิลเฉลี่ย {recycle_ratio:.1f}%)"
+
+    # เลือกใช้สีหรือไอคอนกล่องข้อความที่แตกต่างกันตามกลุ่ม
     st.info(
-        f"**{cluster_name}** — "
-        f"{description} "
-        f"จำนวน {int(province_count)} จังหวัด"
+        f"**🏷️ {cluster_name}** ({int(province_count)} จังหวัด)\n\n"
+        f"• **ปริมาณขยะเกิดเฉลี่ย:** {generated:,.2f} ตัน/วัน\n"
+        f"• **ปริมาณรีไซเคิลเฉลี่ย:** {recycled:,.2f} ตัน/วัน\n"
+        f"• **จุดเด่น/ข้อสังเกต:** {description}"
     )
-
+    
 # =========================================================
 # Province Table
 # =========================================================
