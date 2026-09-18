@@ -1,558 +1,109 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
-
 from utils import load_clean_data, filter_and_aggregate_by_year
+from theme import inject_global_css, page_header, section_title, kpi_card, info_card, empty_state, footer, style_fig, COLORS
 
+st.set_page_config(page_title="ML Analytics", page_icon="🤖", layout="wide")
+inject_global_css()
 
-# =========================================================
-# Page Configuration
-# =========================================================
-st.set_page_config(
-    page_title="ML Analytics",
-    page_icon="🤖",
-    layout="wide"
-)
-
-
-# =========================================================
-# Title
-# =========================================================
-st.title("🤖 Machine Learning Analytics")
-st.subheader("การวิเคราะห์และจัดกลุ่มจังหวัดด้วย K-Means Clustering")
-
-st.markdown("""
-ระบบใช้ **K-Means Clustering** เพื่อจัดกลุ่มจังหวัดที่มีลักษณะ
-การเกิดขยะและการนำขยะกลับมาใช้ประโยชน์ใกล้เคียงกัน
-โดยสามารถเลือกปีและจำนวนกลุ่มที่ต้องการวิเคราะห์ได้
-""")
-
-st.markdown("---")
-
-
-# =========================================================
-# Load Data
-# =========================================================
-df = load_clean_data()
-
-if df.empty:
-    st.error("❌ ไม่พบข้อมูลในระบบ")
-    st.stop()
-
-
-# =========================================================
-# Prepare Data
-# =========================================================
-required_columns = [
-    "generated_ton_day",
-    "recycled_ton_day",
-    "year_be",
-    "province_display",
-    "region_display"
-]
-
-missing_columns = [
-    col for col in required_columns
-    if col not in df.columns
-]
-
-if missing_columns:
-    st.error(
-        f"❌ ไม่พบคอลัมน์ที่จำเป็น: {', '.join(missing_columns)}"
-    )
-    st.stop()
-
-
-valid_df = df.dropna(
-    subset=[
-        "generated_ton_day",
-        "recycled_ton_day"
-    ]
-).copy()
+with st.spinner("กำลังโหลดข้อมูล..."):
+    df = load_clean_data()
+valid_df = df.dropna(subset=["generated_ton_day", "recycled_ton_day"]).copy()
 
 if valid_df.empty:
-    st.warning(
-        "⚠️ ไม่พบข้อมูลปริมาณขยะที่สมบูรณ์ "
-        "สำหรับนำมาทำ Machine Learning"
-    )
-    st.stop()
+    empty_state("ไม่พบข้อมูลสำหรับ ML", "จำเป็นต้องมีข้อมูลขยะเกิดและรีไซเคิลครบถ้วน")
 
+page_header("🤖", "Machine Learning Analytics", "การวิเคราะห์และจัดกลุ่มจังหวัดด้วย K-Means Clustering")
 
-# =========================================================
-# Sidebar
-# =========================================================
-st.sidebar.header("⚙️ ตั้งค่า Machine Learning")
+with st.sidebar:
+    st.markdown("## 🤖 ML Analytics")
+    st.markdown("---")
+    st.markdown("### ⚙️ ตั้งค่า Machine Learning")
+    years = ["ทั้งหมด (ค่าเฉลี่ยทุกปี)"] + list(sorted(valid_df["year_be"].unique(), reverse=True))
+    selected_year = st.selectbox("📅 เลือกปี พ.ศ.", years)
+    k_clusters = st.slider("🔢 จำนวนกลุ่ม (Clusters)", 2, 6, 3)
 
-available_years = sorted(
-    valid_df["year_be"].unique(),
-    reverse=True
-)
+df_ml = filter_and_aggregate_by_year(valid_df[valid_df["province_display"] != "ไม่ระบุ"], selected_year, group_by_cols=["province_display", "region_display"], agg_func="mean")
 
-# 🛠️ เพิ่มตัวเลือก "ทั้งหมด (ค่าเฉลี่ยทุกปี)" เข้าไปใน Selectbox
-year_options = ["ทั้งหมด (ค่าเฉลี่ยทุกปี)"] + list(available_years)
+# [ส่วนที่แก้ไข] แปลง selected_year เป็น string ก่อนใช้ .startswith() ป้องกัน Error
+selected_year_str = str(selected_year)
+year_label = "ค่าเฉลี่ยทุกปีสะสม" if selected_year_str.startswith("ทั้งหมด") else f"ปี พ.ศ. {int(selected_year)}"
 
-selected_year = st.sidebar.selectbox(
-    "📅 เลือกปี พ.ศ.",
-    year_options
-)
+features = df_ml[["generated_ton_day", "recycled_ton_day"]]
+scaled_features = StandardScaler().fit_transform(features)
+kmeans = KMeans(n_clusters=k_clusters, random_state=42, n_init=10)
+df_ml["Cluster_ID"] = kmeans.fit_predict(scaled_features)
+df_ml["Cluster"] = "กลุ่มที่ " + (df_ml["Cluster_ID"] + 1).astype(str)
 
-k_clusters = st.sidebar.slider(
-    "🔢 จำนวนกลุ่ม (Clusters)",
-    min_value=2,
-    max_value=6,
-    value=3
-)
+silhouette = silhouette_score(scaled_features, df_ml["Cluster_ID"]) if k_clusters >= 2 and len(df_ml) > k_clusters else 0
 
-st.sidebar.markdown("---")
+section_title("📊", f"ภาพรวมการจัดกลุ่ม · {year_label}")
+c1, c2, c3, c4 = st.columns(4)
+with c1:
+    kpi_card("🏙️", "จำนวนจังหวัด", f"{len(df_ml):,}", color=COLORS["primary"])
+with c2:
+    kpi_card("🔢", "จำนวนกลุ่ม", str(k_clusters), color=COLORS["purple"])
+with c3:
+    kpi_card("♻️", "ขยะเกิดเฉลี่ย", f"{df_ml['generated_ton_day'].mean():,.2f} ตัน", color=COLORS["success"])
+with c4:
+    quality = "ดี" if silhouette >= 0.5 else ("ปานกลาง" if silhouette >= 0.25 else "ปรับปรุง")
+    kpi_card("📈", "Silhouette Score", f"{silhouette:.3f}", quality, color=COLORS["info"])
 
-st.sidebar.markdown("""
-### 📌 ตัวแปรที่ใช้
+st.write("")
 
-**X1:** ปริมาณขยะที่เกิดขึ้น  
-**X2:** ปริมาณขยะที่นำกลับมาใช้ประโยชน์
+tab1, tab2 = st.tabs(["🎯 กราฟกระจายตัว & การตีความ", "📋 ตารางข้อมูลจังหวัดจำแนกกลุ่ม"])
 
-ก่อนทำ K-Means ระบบจะทำ **Standardization**
-เพื่อให้ตัวแปรทั้งสองมีสเกลที่เหมาะสม
-""")
-
-
-# =========================================================
-# Filter Year (ใช้ filter_and_aggregate_by_year ด้วย agg_func="mean")
-# =========================================================
-# 🛠️ หากเลือก "ทั้งหมด" จะยุบข้อมูลหาค่าเฉลี่ยรายจังหวัด
-df_ml = filter_and_aggregate_by_year(
-    valid_df[valid_df["province_display"] != "ไม่ระบุ"],
-    selected_year,
-    group_by_cols=["province_display"],
-    agg_func="mean"
-)
-
-# กำหนด Label กำกับหน้าจอ
-if selected_year == "ทั้งหมด (ค่าเฉลี่ยทุกปี)":
-    year_label = "ค่าเฉลี่ยทุกปีสะสม"
-else:
-    year_label = f"ปี พ.ศ. {int(selected_year)}"
-
-if len(df_ml) < k_clusters:
-    st.warning(
-        f"⚠️ ตัวเลือก {selected_year} มีข้อมูลเพียง "
-        f"{len(df_ml)} จังหวัด "
-        f"ซึ่งน้อยกว่าจำนวน Cluster ({k_clusters})"
-    )
-    st.stop()
-
-
-# =========================================================
-# Features
-# =========================================================
-features = df_ml[
-    [
-        "generated_ton_day",
-        "recycled_ton_day"
-    ]
-].copy()
-
-
-# =========================================================
-# Standardization
-# =========================================================
-scaler = StandardScaler()
-
-scaled_features = scaler.fit_transform(features)
-
-
-# =========================================================
-# K-Means
-# =========================================================
-kmeans = KMeans(
-    n_clusters=k_clusters,
-    random_state=42,
-    n_init=10
-)
-
-cluster_numbers = kmeans.fit_predict(
-    scaled_features
-)
-
-df_ml["Cluster_ID"] = cluster_numbers
-
-df_ml["Cluster"] = (
-    "กลุ่มที่ "
-    + (cluster_numbers + 1).astype(str)
-)
-
-
-# =========================================================
-# Silhouette Score
-# =========================================================
-if k_clusters >= 2 and len(df_ml) > k_clusters:
-
-    silhouette = silhouette_score(
-        scaled_features,
-        cluster_numbers
-    )
-
-else:
-    silhouette = 0
-
-
-# =========================================================
-# KPI
-# =========================================================
-st.subheader(
-    f"📊 ภาพรวมการจัดกลุ่ม ({year_label})"
-)
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric(
-        "🏙️ จำนวนจังหวัด",
-        f"{len(df_ml):,}"
-    )
-
-with col2:
-    st.metric(
-        "🔢 จำนวนกลุ่ม",
-        k_clusters
-    )
-
-with col3:
-    st.metric(
-        "♻️ ขยะเกิดเฉลี่ย",
-        f"{df_ml['generated_ton_day'].mean():,.2f} ตัน/วัน"
-    )
-
-with col4:
-    st.metric(
-        "📈 Silhouette Score",
-        f"{silhouette:.3f}"
-    )
-
-
-st.markdown("---")
-
-
-# =========================================================
-# Main Visualization
-# =========================================================
-st.subheader("🎯 การกระจายตัวของจังหวัดแต่ละกลุ่ม")
-
-col1, col2 = st.columns([2.2, 1])
-
-
-# ---------------------------------------------------------
-# Scatter Plot
-# ---------------------------------------------------------
-with col1:
-
-    fig_cluster = px.scatter(
-        df_ml,
-        x="generated_ton_day",
-        y="recycled_ton_day",
-        color="Cluster",
-        hover_name="province_display",
-        hover_data={
-            "region_display": True,
-            "generated_ton_day": ":,.2f",
-            "recycled_ton_day": ":,.2f",
-            "Cluster": True
-        },
-        labels={
-            "generated_ton_day":
-                "ขยะที่เกิดขึ้น (ตัน/วัน)",
-
-            "recycled_ton_day":
-                "นำกลับมาใช้ประโยชน์ (ตัน/วัน)",
-
-            "Cluster":
-                "กลุ่ม"
-        },
-        title=(
-            f"K-Means Clustering "
-            f"({year_label})"
+with tab1:
+    col_chart, col_inter = st.columns([2.5, 1.8])
+    with col_chart:
+        fig = px.scatter(
+            df_ml, x="generated_ton_day", y="recycled_ton_day", color="Cluster", hover_name="province_display",
+            labels={"generated_ton_day": "ขยะเกิด (ตัน/วัน)", "recycled_ton_day": "รีไซเคิล (ตัน/วัน)"},
+            color_discrete_sequence=px.colors.qualitative.Set1, title="การจัดกลุ่มจังหวัด (Scatter Plot)"
         )
-    )
-
-    fig_cluster.update_traces(
-        marker=dict(size=11)
-    )
-
-    fig_cluster.update_layout(
-        height=520,
-        legend_title="กลุ่มจังหวัด"
-    )
-
-    st.plotly_chart(
-        fig_cluster,
-        use_container_width=True
-    )
-
-
-# ---------------------------------------------------------
-# Cluster Summary
-# ---------------------------------------------------------
-with col2:
-
-    st.markdown("#### 📊 สรุปแต่ละกลุ่ม")
-
-    cluster_summary = (
-        df_ml
-        .groupby("Cluster")
-        .agg(
-            จำนวนจังหวัด=(
-                "province_display",
-                "count"
-            ),
-
-            ขยะเกิดเฉลี่ย=(
-                "generated_ton_day",
-                "mean"
-            ),
-
-            รีไซเคิลเฉลี่ย=(
-                "recycled_ton_day",
-                "mean"
-            )
-        )
-        .reset_index()
-    )
-
-    cluster_summary = cluster_summary.sort_values(
-        "Cluster"
-    )
-
-    st.dataframe(
-        cluster_summary.style.format({
-            "ขยะเกิดเฉลี่ย": "{:,.2f}",
-            "รีไซเคิลเฉลี่ย": "{:,.2f}"
-        }),
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-# =========================================================
-# Cluster Distribution
-# =========================================================
-st.markdown("---")
-
-st.subheader("📊 จำนวนจังหวัดในแต่ละกลุ่ม")
-
-cluster_count = (
-    df_ml["Cluster"]
-    .value_counts()
-    .reset_index()
-)
-
-cluster_count.columns = [
-    "Cluster",
-    "จำนวนจังหวัด"
-]
-
-cluster_count = cluster_count.sort_values(
-    "Cluster"
-)
-
-fig_count = px.bar(
-    cluster_count,
-    x="Cluster",
-    y="จำนวนจังหวัด",
-    text="จำนวนจังหวัด",
-    labels={
-        "Cluster": "กลุ่ม",
-        "จำนวนจังหวัด": "จำนวนจังหวัด"
-},
-    title="จำนวนจังหวัดในแต่ละ Cluster"
-)
-
-fig_count.update_traces(
-    textposition="outside"
-)
-
-fig_count.update_layout(
-    height=400
-)
-
-st.plotly_chart(
-    fig_count,
-    use_container_width=True
-)
-
-
-
-# =========================================================
-# Cluster Interpretation
-# =========================================================
-st.markdown("---")
-
-st.subheader("🧠 ลักษณะเฉพาะของแต่ละกลุ่ม")
-
-# สร้างตารางสรุป
-interpretation = (
-    df_ml.groupby("Cluster")
-    .agg({
-        "province_display": "count",
-        "generated_ton_day": "mean",
-        "recycled_ton_day": "mean"
-    })
-    .reset_index()
-)
-
-interpretation.columns = [
-    "Cluster",
-    "จำนวนจังหวัด",
-    "ขยะเกิดเฉลี่ย",
-    "รีไซเคิลเฉลี่ย"
-]
-
-# คำนวณค่าเฉลี่ยภาพรวมและส่วนเบี่ยงเบนมาตรฐาน (หรือใช้ค่ามัธยฐาน/เกณฑ์กลาง)
-overall_generated = df_ml["generated_ton_day"].mean()
-overall_recycled = df_ml["recycled_ton_day"].mean()
-
-for _, row in interpretation.iterrows():
-    cluster_name = row["Cluster"]
-    generated = row["ขยะเกิดเฉลี่ย"]
-    recycled = row["รีไซเคิลเฉลี่ย"]
-    province_count = row["จำนวนจังหวัด"]
-
-    # คำนวณสัดส่วนการรีไซเคิลเทียบกับขยะที่เกิดขึ้น (%) ของกลุ่มนี้
-    recycle_ratio = (recycled / generated * 100) if generated > 0 else 0
-
-    # -----------------------------------------
-    # วิเคราะห์ลักษณะเฉพาะแบบละเอียดและแตกต่าง
-    # -----------------------------------------
-    if generated >= overall_generated * 1.5:
-        size_desc = "กลุ่มเมืองใหญ่ / พื้นที่เศรษฐกิจหนาแน่น"
-    elif generated >= overall_generated:
-        size_desc = "กลุ่มเมืองขนาดกลาง / มีปริมาณขยะค่อนข้างสูง"
-    else:
-        size_desc = "กลุ่มเมืองขนาดเล็ก / ชุมชนท้องถิ่น"
-
-    if recycle_ratio >= 35:
-        recycle_desc = "บริหารจัดการและนำกลับมาใช้ประโยชน์ได้ดีเยี่ยม (High Recovery Rate)"
-    elif recycle_ratio >= 20:
-        recycle_desc = "มีการนำกลับมาใช้ประโยชน์ในระดับปานกลาง"
-    else:
-        recycle_desc = "มีการนำกลับมาใช้ประโยชน์ค่อนข้างน้อย ควรส่งเสริมการจัดการเพิ่มเติม"
-
-    # จัดทำประโยคสรุปเอกลักษณ์
-    description = f"{size_desc} — {recycle_desc} (อัตราการรีไซเคิลเฉลี่ย {recycle_ratio:.1f}%)"
-
-    # เลือกใช้สีหรือไอคอนกล่องข้อความที่แตกต่างกันตามกลุ่ม
-    st.info(
-        f"**🏷️ {cluster_name}** ({int(province_count)} จังหวัด)\n\n"
-        f"• **ปริมาณขยะเกิดเฉลี่ย:** {generated:,.2f} ตัน/วัน\n"
-        f"• **ปริมาณรีไซเคิลเฉลี่ย:** {recycled:,.2f} ตัน/วัน\n"
-        f"• **จุดเด่น/ข้อสังเกต:** {description}"
-    )
+        fig.update_traces(marker=dict(size=14, opacity=0.8, line=dict(width=1, color='white')))
+        style_fig(fig, height=550, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
+        st.plotly_chart(fig, use_container_width=True)
     
-# =========================================================
-# Province Table
-# =========================================================
-st.markdown("---")
+    with col_inter:
+        st.write("#### 🧠 การตีความลักษณะเฉพาะ")
+        summary = df_ml.groupby("Cluster").agg({
+            "province_display": "count", 
+            "generated_ton_day": "mean", 
+            "recycled_ton_day": "mean"
+        }).reset_index()
+        summary.columns = ["Cluster", "จำนวนจังหวัด", "ขยะเกิดเฉลี่ย", "รีไซเคิลเฉลี่ย"]
+        summary = summary.sort_values("ขยะเกิดเฉลี่ย")
+        
+        for _, row in summary.iterrows():
+            cluster_name = row["Cluster"]
+            gen, rec, count = row["ขยะเกิดเฉลี่ย"], row["รีไซเคิลเฉลี่ย"], row["จำนวนจังหวัด"]
+            ratio = (rec / gen * 100) if gen > 0 else 0
+            
+            msg = f"**{cluster_name}** ({int(count)} จ.)\n\nเกิด {gen:,.1f} ตัน | รีไซเคิล {ratio:.1f}%"
+            if ratio >= 30:
+                st.success(f"🌟 กลุ่มประสิทธิภาพดี:\n{msg}")
+            elif ratio >= 15:
+                st.info(f"🔹 กลุ่มทั่วไป:\n{msg}")
+            else:
+                st.warning(f"⚠️ กลุ่มที่ต้องเฝ้าระวัง (รีไซเคิลต่ำ):\n{msg}")
 
-st.subheader("📋 รายชื่อจังหวัดจำแนกตามกลุ่ม")
+with tab2:
+    selected_c = st.selectbox("🔎 เลือกดูกลุ่ม", ["ทั้งหมด"] + sorted(df_ml["Cluster"].unique()))
+    disp_df = df_ml if selected_c == "ทั้งหมด" else df_ml[df_ml["Cluster"] == selected_c]
+    disp_df = disp_df[["province_display", "region_display", "generated_ton_day", "recycled_ton_day", "Cluster"]]
+    disp_df.columns = ["จังหวัด", "ภูมิภาค", "ขยะเกิด (ตัน)", "รีไซเคิล (ตัน)", "กลุ่ม"]
+    
+    st.dataframe(
+        disp_df.sort_values("ขยะเกิด (ตัน)", ascending=False)
+               .style.bar(subset=["ขยะเกิด (ตัน)"], color="#FCA5A5")
+               .bar(subset=["รีไซเคิล (ตัน)"], color="#6EE7B7")
+               .format({"ขยะเกิด (ตัน)": "{:,.2f}", "รีไซเคิล (ตัน)": "{:,.2f}"}),
+        use_container_width=True, hide_index=True, height=500
+    )
 
-
-selected_cluster = st.selectbox(
-    "🔎 เลือกกลุ่มที่ต้องการดู",
-    ["ทั้งหมด"] + sorted(df_ml["Cluster"].unique())
-)
-
-if selected_cluster != "ทั้งหมด":
-
-    display_df = df_ml[
-        df_ml["Cluster"] == selected_cluster
-    ].copy()
-
-else:
-
-    display_df = df_ml.copy()
-
-
-display_df = display_df.sort_values(
-    "generated_ton_day",
-    ascending=False
-)
-
-
-display_df = display_df[
-    [
-        "province_display",
-        "region_display",
-        "generated_ton_day",
-        "recycled_ton_day",
-        "Cluster"
-    ]
-].copy()
-
-
-display_df.columns = [
-    "จังหวัด",
-    "ภูมิภาค",
-    "ขยะที่เกิดขึ้น (ตัน/วัน)",
-    "นำกลับมาใช้ประโยชน์ (ตัน/วัน)",
-    "กลุ่ม"
-]
-
-
-st.dataframe(
-    display_df.style.format({
-        "ขยะที่เกิดขึ้น (ตัน/วัน)": "{:,.2f}",
-        "นำกลับมาใช้ประโยชน์ (ตัน/วัน)": "{:,.2f}"
-    }),
-    use_container_width=True,
-    hide_index=True
-)
-
-
-# =========================================================
-# Explanation
-# =========================================================
-st.markdown("---")
-
-with st.expander("ℹ️ K-Means ทำงานอย่างไร?"):
-
-    st.markdown("""
-### K-Means Clustering
-
-K-Means เป็น Machine Learning แบบ **Unsupervised Learning**
-ที่ใช้สำหรับแบ่งข้อมูลออกเป็นกลุ่มตามความคล้ายคลึงกัน
-
-ในระบบนี้ใช้ตัวแปร 2 ตัว ได้แก่
-
-- **ปริมาณขยะที่เกิดขึ้น (ตัน/วัน)**
-- **ปริมาณขยะที่นำกลับมาใช้ประโยชน์ (ตัน/วัน)**
-
-ขั้นตอนการทำงาน:
-
-**1. เตรียมข้อมูล**  
-เลือกเฉพาะจังหวัดที่มีข้อมูลครบถ้วน
-
-**2. Standardization**  
-ปรับ Scale ของข้อมูลให้เหมาะสมก่อนนำไปทำ Clustering
-
-**3. กำหนดจำนวนกลุ่ม (K)**  
-ผู้ใช้สามารถเลือกจำนวน Cluster ได้
-
-**4. K-Means**  
-โมเดลจะจัดจังหวัดที่มีลักษณะใกล้เคียงกันให้อยู่ในกลุ่มเดียวกัน
-
-**5. วิเคราะห์ผลลัพธ์**  
-แสดงผลผ่าน Scatter Plot, ตาราง และจำนวนจังหวัดในแต่ละกลุ่ม
-""")
-
-
-# =========================================================
-# Footer
-# =========================================================
-st.markdown("---")
-
-st.caption(
-    "🇹🇭 Thai MSW Analytics | Machine Learning Module"
-)
+footer("ML Analytics")
