@@ -2,10 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from utils import load_clean_data, filter_and_aggregate_by_year
-from theme import inject_global_css, page_header, section_title, kpi_card, info_card, empty_state, footer, style_fig, COLORS
-
-st.set_page_config(page_title="System Overview", page_icon="🖥️", layout="wide")
-inject_global_css()
+from theme import page_header, section_title, kpi_card, info_card, empty_state, footer, style_fig, COLORS
 
 with st.spinner("กำลังโหลดข้อมูล..."):
     df = load_clean_data()
@@ -77,9 +74,12 @@ with st.container(border=True):
         mgr_data, values="ปริมาณ", names="วิธีการจัดการ", hole=0.55, color="วิธีการจัดการ",
         color_discrete_map={"นำกลับมาใช้ประโยชน์": COLORS["success"], "กำจัดถูกต้อง": COLORS["info"], "กำจัดไม่ถูกต้อง": COLORS["danger"]}
     )
-    fig_pie.update_traces(textposition="inside", textinfo="percent+label", textfont_size=15)
-    fig_pie.update_layout(height=450, showlegend=True, legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.05, font=dict(size=15)))
-    style_fig(fig_pie, margin=dict(t=20, b=20, l=20, r=20))
+    fig_pie.update_traces(textposition="inside", textinfo="percent", textfont_size=15)
+    style_fig(
+        fig_pie, height=460, showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.02, xanchor="center", x=0.5, font=dict(size=14)),
+        margin=dict(t=20, b=70, l=20, r=20),
+    )
     col_left, col_center, col_right = st.columns([1, 4, 1])
     with col_center:
         st.plotly_chart(fig_pie, use_container_width=True)

@@ -1,10 +1,7 @@
 import pandas as pd
 import streamlit as st
 from utils import load_clean_data
-from theme import inject_global_css, page_header, section_title, kpi_card, empty_state, footer, COLORS
-
-st.set_page_config(page_title="Data Explorer & Export", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")
-inject_global_css()
+from theme import page_header, section_title, kpi_card, empty_state, footer, COLORS
 
 with st.spinner("กำลังโหลดข้อมูล..."):
     df = load_clean_data()
@@ -101,8 +98,8 @@ if filtered_df.empty:
     empty_state("ไม่พบข้อมูลตรงตามเงื่อนไขที่ค้นหา", "ลองลดเงื่อนไขตัวกรอง หรือตรวจสอบการเลือกข้อมูลแล้วลองใหม่อีกครั้ง")
 
 chip = lambda text: (
-    f'<span style="display:inline-block; background:var(--secondary-background-color); color:var(--text-color); '
-    f'border:1px solid var(--secondary-background-color); border-radius:999px; padding:4px 12px; '
+    f'<span style="display:inline-block; background:rgba(16,185,129,0.12); color:inherit; '
+    f'border:1px solid rgba(16,185,129,0.35); border-radius:999px; padding:4px 12px; '
     f'font-size:12.5px; margin:2px 4px 2px 0;">{text}</span>'
 )
 years_txt = "ทุกปี" if len(selected_years) == len(all_years) else f"{len(selected_years)} ปี"

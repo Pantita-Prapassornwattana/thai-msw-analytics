@@ -2,10 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils import load_clean_data
-from theme import inject_global_css, page_header, section_title, kpi_card, empty_state, footer, style_fig, COLORS
-
-st.set_page_config(page_title="Trends - Thai MSW Analytics", page_icon="📈", layout="wide")
-inject_global_css()
+from theme import page_header, section_title, kpi_card, empty_state, footer, style_fig, COLORS
 
 df = load_clean_data()
 if df.empty:

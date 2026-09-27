@@ -5,10 +5,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 from utils import load_clean_data, filter_and_aggregate_by_year
-from theme import inject_global_css, page_header, section_title, kpi_card, info_card, empty_state, footer, style_fig, COLORS
-
-st.set_page_config(page_title="ML Analytics", page_icon="🤖", layout="wide")
-inject_global_css()
+from theme import page_header, section_title, kpi_card, info_card, empty_state, footer, style_fig, COLORS, CLUSTER_COLORS
 
 with st.spinner("กำลังโหลดข้อมูล..."):
     df = load_clean_data()
@@ -63,7 +60,7 @@ with tab1:
         fig = px.scatter(
             df_ml, x="generated_ton_day", y="recycled_ton_day", color="Cluster", hover_name="province_display",
             labels={"generated_ton_day": "ขยะเกิด (ตัน/วัน)", "recycled_ton_day": "รีไซเคิล (ตัน/วัน)"},
-            color_discrete_sequence=px.colors.qualitative.Set1, title="การจัดกลุ่มจังหวัด (Scatter Plot)"
+            color_discrete_sequence=CLUSTER_COLORS, title="การจัดกลุ่มจังหวัด (Scatter Plot)"
         )
         fig.update_traces(marker=dict(size=14, opacity=0.8, line=dict(width=1, color='white')))
         style_fig(fig, height=550, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))

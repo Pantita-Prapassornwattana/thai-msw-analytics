@@ -2,10 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from utils import load_clean_data, filter_and_aggregate_by_year
-from theme import inject_global_css, page_header, section_title, kpi_card, empty_state, footer, style_fig, COLORS
-
-st.set_page_config(page_title="Spatial Analytics", page_icon="🗺️", layout="wide")
-inject_global_css()
+from theme import page_header, section_title, kpi_card, empty_state, footer, style_fig, COLORS, GREEN_SCALE
 
 with st.spinner("กำลังโหลดข้อมูล..."):
     df = load_clean_data()
@@ -62,7 +59,7 @@ with st.container(border=True):
     fig_tree = px.treemap(
         df_year, path=[px.Constant("ประเทศไทย"), "region_display", "province_display"],
         values=selected_metric, color=selected_metric,
-        color_continuous_scale="Greens", hover_data=[selected_metric]
+        color_continuous_scale=GREEN_SCALE, hover_data=[selected_metric]
     )
     fig_tree.update_traces(hovertemplate="<b>%{label}</b><br>ปริมาณ: %{value:,.2f} ตัน/วัน<extra></extra>", marker=dict(line=dict(color='white', width=1.5)))
     style_fig(fig_tree, height=550, margin=dict(t=10, l=10, r=10, b=10))
