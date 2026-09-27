@@ -17,8 +17,6 @@ if valid_df.empty:
 page_header("🤖", "Machine Learning Analytics", "การวิเคราะห์และจัดกลุ่มจังหวัดด้วย K-Means Clustering")
 
 with st.sidebar:
-    st.markdown("## 🤖 ML Analytics")
-    st.markdown("---")
     st.markdown("### ⚙️ ตั้งค่า Machine Learning")
     years = ["ทั้งหมด (ค่าเฉลี่ยทุกปี)"] + list(sorted(valid_df["year_be"].unique(), reverse=True))
     selected_year = st.selectbox("📅 เลือกปี พ.ศ.", years)
@@ -26,7 +24,6 @@ with st.sidebar:
 
 df_ml = filter_and_aggregate_by_year(valid_df[valid_df["province_display"] != "ไม่ระบุ"], selected_year, group_by_cols=["province_display", "region_display"], agg_func="mean")
 
-# [ส่วนที่แก้ไข] แปลง selected_year เป็น string ก่อนใช้ .startswith() ป้องกัน Error
 selected_year_str = str(selected_year)
 year_label = "ค่าเฉลี่ยทุกปีสะสม" if selected_year_str.startswith("ทั้งหมด") else f"ปี พ.ศ. {int(selected_year)}"
 
@@ -39,11 +36,15 @@ df_ml["Cluster"] = "กลุ่มที่ " + (df_ml["Cluster_ID"] + 1).astyp
 silhouette = silhouette_score(scaled_features, df_ml["Cluster_ID"]) if k_clusters >= 2 and len(df_ml) > k_clusters else 0
 
 section_title("📊", f"ภาพรวมการจัดกลุ่ม · {year_label}")
-c1, c2, c3, c4 = st.columns(4)
+
+# จัดวาง 2x2
+c1, c2 = st.columns(2)
 with c1:
     kpi_card("🏙️", "จำนวนจังหวัด", f"{len(df_ml):,}", color=COLORS["primary"])
 with c2:
     kpi_card("🔢", "จำนวนกลุ่ม", str(k_clusters), color=COLORS["purple"])
+
+c3, c4 = st.columns(2)
 with c3:
     kpi_card("♻️", "ขยะเกิดเฉลี่ย", f"{df_ml['generated_ton_day'].mean():,.2f} ตัน", color=COLORS["success"])
 with c4:
@@ -63,7 +64,7 @@ with tab1:
             color_discrete_sequence=CLUSTER_COLORS, title="การจัดกลุ่มจังหวัด (Scatter Plot)"
         )
         fig.update_traces(marker=dict(size=14, opacity=0.8, line=dict(width=1, color='white')))
-        style_fig(fig, height=550, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
+        style_fig(fig, height=500, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
         st.plotly_chart(fig, use_container_width=True)
     
     with col_inter:

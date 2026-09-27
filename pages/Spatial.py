@@ -13,9 +13,6 @@ if df.empty:
 page_header("🗺️", "การวิเคราะห์เชิงพื้นที่ (Spatial Analytics)", "เจาะลึกความหนาแน่นด้วยสีสันใน Treemap — กล่องยิ่งใหญ่ สียิ่งเข้ม คือพื้นที่ที่มีปริมาณเยอะ")
 
 with st.sidebar:
-    st.markdown("## 🗺️ Spatial")
-    st.caption("วิเคราะห์การกระจายตัวเชิงพื้นที่")
-    st.markdown("---")
     st.markdown("### ⚙️ ตัวกรองเชิงพื้นที่")
     years = ["ทั้งหมด"] + list(sorted(df["year_be"].dropna().unique(), reverse=True))
     selected_year = st.selectbox("📅 เลือกปี พ.ศ.", years)

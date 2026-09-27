@@ -11,8 +11,6 @@ if df.empty:
 page_header("📈", "การวิเคราะห์แนวโน้มปริมาณขยะ (Trends)", "วิเคราะห์การเปลี่ยนแปลงปริมาณขยะในแต่ละปี พร้อมเปรียบเทียบแนวโน้มระหว่างภูมิภาค")
 
 with st.sidebar:
-    st.markdown("## 📈 Trends")
-    st.markdown("---")
     st.markdown("### ⚙️ ตัวกรองข้อมูล")
     regions = ["ทั้งหมด"] + sorted([r for r in df["region_display"].dropna().unique() if r != "ไม่ระบุ"])
     selected_region = st.selectbox("🗺️ เลือกภูมิภาค", regions)
@@ -41,11 +39,15 @@ first_val, last_val = trend_df[selected_metric].iloc[0], trend_df[selected_metri
 change_pct = ((last_val - first_val) / first_val) * 100 if first_val else 0
 
 section_title("📊", f"สรุปแนวโน้ม: {metric_name}")
-col1, col2, col3, col4 = st.columns(4)
+
+# จัดวาง 2x2
+col1, col2 = st.columns(2)
 with col1:
     kpi_card("📅", "ปีแรกสุด", f"{first_val:,.0f} ตัน", f"พ.ศ. {int(trend_df['year_be'].iloc[0])}", color=COLORS["info"])
 with col2:
     kpi_card("📅", "ปีล่าสุด", f"{last_val:,.0f} ตัน", f"พ.ศ. {int(trend_df['year_be'].iloc[-1])}", color=COLORS["info"])
+
+col3, col4 = st.columns(2)
 with col3:
     c_color = COLORS["danger"] if change_pct > 0 and "ไม่ถูก" in metric_name else COLORS["success"]
     kpi_card("📊", "การเปลี่ยนแปลงสะสม", f"{change_pct:+.2f}%", color=c_color)
@@ -64,7 +66,7 @@ with tab1:
     color_map = {"ขยะที่เกิดขึ้น": COLORS["purple"], "นำกลับมาใช้ประโยชน์": COLORS["success"], "กำจัดถูกต้อง": COLORS["info"], "กำจัดไม่ถูกต้อง": COLORS["danger"]}
     fig_comp = px.line(comp_long, x="ปี พ.ศ.", y="ปริมาณ (ตัน/วัน)", color="ประเภท", markers=True, color_discrete_map=color_map)
     fig_comp.update_traces(line=dict(width=3), marker=dict(size=8))
-    style_fig(fig_comp, height=450, hovermode="x unified")
+    style_fig(fig_comp, height=450, hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig_comp, use_container_width=True)
 
 with tab2:

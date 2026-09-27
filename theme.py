@@ -41,7 +41,7 @@ GREEN = {
 CLUSTER_COLORS = ["#059669", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6"]
 
 # สเกลสีเขียวสำหรับ Treemap (ค่าน้อย = เขียวอ่อน, ค่ามาก = เขียวเข้ม)
-GREEN_SCALE = ["#d1fae5", "#6ee7b7", "#10b981", "#047857", "#064e3b"]
+GREEN_SCALE = ["#f0fdfa", "#ccfbf1", "#5eead4", "#14b8a6", "#0f766e", "#115e59"]
 
 FONT_IMPORT_URL = "https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap"
 
@@ -92,7 +92,7 @@ def inject_global_css() -> None:
             font-weight: 600 !important;
             border: 1px solid {_BORDER} !important;
             transition: all 0.15s ease-in-out;
-            min-height: 2.6rem;
+            min-height: 2.8rem; /* ขยายขนาดปุ่มให้กดง่ายบนมือถือ */
         }}
         .stButton > button:hover {{
             border-color: {COLORS['primary']} !important;
@@ -220,21 +220,39 @@ def inject_global_css() -> None:
         .msw-nav-desc {{ font-size: 14px; color: inherit; opacity: 0.78; line-height: 1.65; margin-top: 6px; }}
         a[data-testid="stPageLink-NavLink"] {{ border-radius: 10px; font-weight: 600; }}
 
-        /* ---------- Responsive ---------- */
+        /* ========================================= */
+        /* 📱 Mobile Optimization (Max Width 640px) */
+        /* ========================================= */
+        @media (max-width: 640px) {{
+            /* ลด Padding ขอบจอเพื่อเพิ่มพื้นที่แสดงผล */
+            .block-container, [data-testid="stMainBlockContainer"] {{ 
+                padding-top: 1.5rem !important; 
+                padding-left: 1rem !important; 
+                padding-right: 1rem !important; 
+            }}
+            
+            /* ปรับขนาดการ์ด KPI ให้กะทัดรัดขึ้น ไม่กินพื้นที่แนวตั้ง */
+            .msw-kpi {{ min-height: auto; padding: 14px 16px; }}
+            .msw-kpi-value {{ font-size: 22px; }}
+            .msw-kpi-sub {{ font-size: 12px; margin-top: 8px; }}
+            
+            /* ปรับแท็บให้กดง่ายบนจอเล็ก */
+            button[data-baseweb="tab"] {{ font-size: 13.5px; padding-left: 8px; padding-right: 8px; }}
+            
+            .msw-nav-card {{ min-height: auto; padding: 16px; }}
+            .msw-empty {{ padding: 36px 16px; }}
+            .msw-section {{ font-size: 18px !important; margin-top: 16px; }}
+            
+            /* ซ่อนเมนูด้านซ้ายเมื่ออยู่หน้าจอเล็กสุด */
+            [data-testid="stSidebar"] {{ min-width: 100% !important; }}
+        }}
+
         /* แท็บเล็ต: แถวที่มี 4 คอลัมน์ขึ้นไปให้แบ่งเป็น 2 คอลัมน์ต่อแถว */
         @media (min-width: 641px) and (max-width: 992px) {{
             div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4)) {{ flex-wrap: wrap; }}
             div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4)) > div {{
                 flex: 1 1 calc(50% - 1rem); min-width: calc(50% - 1rem);
             }}
-        }}
-        /* มือถือ */
-        @media (max-width: 640px) {{
-            .msw-kpi {{ min-height: 0; padding: 14px 16px; }}
-            .msw-kpi-value {{ font-size: 22px; }}
-            .msw-nav-card {{ min-height: 0; }}
-            .msw-empty {{ padding: 36px 16px; }}
-            button[data-baseweb="tab"] {{ font-size: 14px; padding-left: 10px; padding-right: 10px; }}
         }}
         @media (prefers-reduced-motion: reduce) {{
             .stButton > button, .stDownloadButton > button {{ transition: none; }}

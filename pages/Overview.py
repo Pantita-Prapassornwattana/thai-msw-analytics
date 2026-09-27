@@ -13,9 +13,6 @@ if df.empty:
 page_header("🖥️", "ภาพรวมระบบจัดการขยะมูลฝอยประเทศไทย", "System Overview Dashboard สำหรับการตรวจสอบสถิติและสถานะโครงสร้างพื้นฐานระบบ")
 
 with st.sidebar:
-    st.markdown("## 🖥️ Overview")
-    st.caption("ภาพรวมระบบจัดการขยะมูลฝอย")
-    st.markdown("---")
     st.markdown("### ⚙️ ตัวกรองระบบ")
     years = sorted(df["year_be"].dropna().unique())
     year_options = ["ทั้งหมด"] + list(years)
@@ -40,15 +37,19 @@ correct_pct = (total_cor / total_gen * 100) if total_gen and total_gen > 0 else 
 incorrect_pct = (total_inc / total_gen * 100) if total_gen and total_gen > 0 else 0
 
 section_title("📊", f"ตัวชี้วัดประสิทธิภาพระบบ · {year_label}")
-col1, col2, col3, col4 = st.columns(4)
+
+# แบ่ง 4 การ์ดเป็น 2 แถว เพื่อให้ดูดีบนหน้าจอมือถือและแท็บเล็ต
+col1, col2 = st.columns(2)
 with col1:
     kpi_card("🔄", "อัตราการไหลรวม (Generation)", f"{total_gen:,.0f} ตัน/วัน", color=COLORS["primary"])
 with col2:
-    kpi_card("♻️", "อัตราการนำกลับมาใช้ (Recovery)", f"{total_rec:,.0f} ตัน/วัน", f"{recycle_pct:.1f}% ของระบบ", color=COLORS["success"])
+    kpi_card("♻️", "อัตรานำกลับมาใช้ (Recovery)", f"{total_rec:,.0f} ตัน/วัน", f"{recycle_pct:.1f}% ของระบบ", color=COLORS["success"])
+
+col3, col4 = st.columns(2)
 with col3:
     kpi_card("⚙️", "อัตรากำจัดถูกต้อง (Standard)", f"{total_cor:,.0f} ตัน/วัน", f"{correct_pct:.1f}% ของระบบ", color=COLORS["info"])
 with col4:
-    kpi_card("⚠️", "อัตรากำจัดไม่ถูกต้อง (Non-Standard)", f"{total_inc:,.0f} ตัน/วัน", f"{incorrect_pct:.1f}% ของระบบ", color=COLORS["danger"])
+    kpi_card("⚠️", "อัตรากำจัดไม่ถูกต้อง", f"{total_inc:,.0f} ตัน/วัน", f"{incorrect_pct:.1f}% ของระบบ", color=COLORS["danger"])
 
 st.write("")
 
@@ -56,11 +57,11 @@ section_title("🔍", "สถานะสุขภาพระบบและบ
 col_alert1, col_alert2 = st.columns(2)
 with col_alert1:
     if incorrect_pct > 25:
-        st.error(f"🔴 **System Alert:** ตรวจพบอัตราการกำจัดไม่ถูกต้องสูงถึง **{incorrect_pct:.1f}%** เกินเกณฑ์มาตรฐานระบบ")
+        st.error(f"🔴 **System Alert:** ตรวจพบอัตรากำจัดไม่ถูกต้องถึง **{incorrect_pct:.1f}%**")
     else:
-        st.success(f"🟢 **System Status Normal:** ประสิทธิภาพการจัดการตามมาตรฐานรวมอยู่ที่ **{correct_pct + recycle_pct:.1f}%**")
+        st.success(f"🟢 **System Status Normal:** ประสิทธิภาพจัดการอยู่ที่ **{correct_pct + recycle_pct:.1f}%**")
 with col_alert2:
-    st.warning(f"🟡 **Accumulated Residual:** ปริมาณขยะตกค้างสะสมในระบบโครงสร้างพื้นฐานรวม **{total_res:,.0f} ตัน**")
+    st.warning(f"🟡 **Accumulated Residual:** ปริมาณตกค้างสะสมในระบบรวม **{total_res:,.0f} ตัน**")
 
 st.write("")
 
@@ -76,14 +77,13 @@ with st.container(border=True):
     )
     fig_pie.update_traces(textposition="inside", textinfo="percent", textfont_size=15)
     style_fig(
-        fig_pie, height=460, showlegend=True,
-        legend=dict(orientation="h", yanchor="top", y=-0.02, xanchor="center", x=0.5, font=dict(size=14)),
-        margin=dict(t=20, b=70, l=20, r=20),
+        fig_pie, height=420, showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(size=14)),
+        margin=dict(t=30, b=80, l=10, r=10),
     )
-    col_left, col_center, col_right = st.columns([1, 4, 1])
-    with col_center:
-        st.plotly_chart(fig_pie, use_container_width=True)
+    # ตัดคอลัมน์หลอกออก เพื่อให้กราฟพายกางเต็มจออัตโนมัติบนมือถือ
+    st.plotly_chart(fig_pie, use_container_width=True)
 
 st.write("")
-info_card("💡", "คำแนะนำการใช้งานระบบ", "เลือกโมดูลการวิเคราะห์เชิงลึกจากแถบ Sidebar ด้านซ้ายเพื่อตรวจสอบข้อมูลในมิติอื่นๆ", color=COLORS["primary"])
+info_card("💡", "คำแนะนำการใช้งานระบบ", "เลือกโมดูลการวิเคราะห์เชิงลึกจากเมนูด้านซ้ายเพื่อตรวจสอบในมิติอื่นๆ", color=COLORS["primary"])
 footer("System Overview")

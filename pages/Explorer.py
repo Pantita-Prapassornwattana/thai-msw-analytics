@@ -56,9 +56,6 @@ def handle_province_change():
         st.session_state.ex_regions = []
 
 with st.sidebar:
-    st.markdown("## 🔍 Explorer")
-    st.caption("ค้นหา กรอง และส่งออกข้อมูล")
-    st.markdown("---")
     st.markdown("### ⚙️ ตัวกรองการค้นหา")
     
     # 1. เลือกปี พ.ศ.
