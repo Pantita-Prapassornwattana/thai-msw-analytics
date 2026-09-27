@@ -1,18 +1,11 @@
 """
 theme.py
 =========================================================
-Shared design system for "Thai MSW Analytics" (Green / Eco theme)
-
-หลักการออกแบบ
-- สีหลักเป็นเขียว (Emerald) ส่วนสีที่สื่อความหมาย (แดง/น้ำเงิน/ม่วง) คงเดิม
-- ไม่พึ่งพา CSS variable ของ Streamlit (--text-color ฯลฯ) เพื่อให้ทำงานได้ทุกเวอร์ชัน
-  ใช้ color: inherit และสีโปร่งใส (rgba) แทน จึงสวยทั้งโหมด Light และ Dark
-- Responsive: มือถือ / แท็บเล็ต / เดสก์ท็อป
+Shared design system for "Thai MSW Analytics" (Green / Eco theme with Hover Effects)
 =========================================================
 """
 
 from pathlib import Path
-
 import streamlit as st
 
 # ---------------------------------------------------------------------------
@@ -86,17 +79,19 @@ def inject_global_css() -> None:
         section[data-testid="stSidebar"] h2 {{ font-size: 1.3rem; font-weight: 700; }}
         section[data-testid="stSidebar"] h3 {{ font-size: 1.02rem; font-weight: 600; }}
 
-        /* ---------- Buttons ---------- */
+        /* ---------- Buttons (ทรงแคปซูลโค้งมน) ---------- */
         .stButton > button, .stDownloadButton > button {{
-            border-radius: 10px !important;
+            border-radius: 999px !important;
             font-weight: 600 !important;
             border: 1px solid {_BORDER} !important;
-            transition: all 0.15s ease-in-out;
-            min-height: 2.8rem; /* ขยายขนาดปุ่มให้กดง่ายบนมือถือ */
+            transition: all 0.2s ease-in-out;
+            min-height: 2.8rem;
         }}
         .stButton > button:hover {{
             border-color: {COLORS['primary']} !important;
             color: {COLORS['primary']} !important;
+            background-color: {GREEN['mint']} !important;
+            box-shadow: 0 4px 12px rgba(5,150,105,0.15);
         }}
         .stDownloadButton > button {{
             background: linear-gradient(135deg, {GREEN['leaf']}, {GREEN['forest']}) !important;
@@ -105,7 +100,7 @@ def inject_global_css() -> None:
         }}
         .stDownloadButton > button:hover {{
             transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(5,150,105,0.35);
+            box-shadow: 0 6px 16px rgba(5,150,105,0.35);
             color: white !important;
         }}
 
@@ -152,7 +147,7 @@ def inject_global_css() -> None:
             margin: 8px 0 14px 0; line-height: 1.4;
         }}
 
-        /* ---------- KPI card ---------- */
+        /* ---------- KPI card (เพิ่มลูกเล่น Hover ลอยขึ้น) ---------- */
         .msw-kpi {{
             background: {_SURFACE};
             background: color-mix(in srgb, var(--accent) 7%, transparent);
@@ -160,6 +155,11 @@ def inject_global_css() -> None:
             border-radius: 14px; padding: 16px 18px;
             display: flex; flex-direction: column;
             min-height: 128px; box-sizing: border-box; margin-bottom: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+        .msw-kpi:hover {{
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }}
         .msw-kpi-label {{ font-size: 13px; font-weight: 600; color: inherit; opacity: 0.8; line-height: 1.4; }}
         .msw-kpi-value {{
@@ -208,46 +208,44 @@ def inject_global_css() -> None:
             font-size: clamp(15px, 2.4vw, 20px); color: inherit; opacity: 0.8;
             margin: 6px 0 22px 0; font-weight: 500;
         }}
+        
+        /* ---------- Nav card (เพิ่มลูกเล่น Hover ลอยขึ้น) ---------- */
         .msw-nav-card {{
             background: {_SURFACE};
             background: color-mix(in srgb, var(--accent) 6%, transparent);
             border: 1px solid {_BORDER}; border-top: 4px solid var(--accent);
             border-radius: 16px; padding: 20px 20px 16px 20px;
             min-height: 150px; box-sizing: border-box; margin-bottom: 6px;
+            transition: all 0.2s ease;
+        }}
+        .msw-nav-card:hover {{
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 20%, transparent);
         }}
         .msw-nav-glyph {{ font-size: 30px; line-height: 1; }}
         .msw-nav-title {{ font-size: 18px; font-weight: 700; color: inherit; margin-top: 10px; }}
         .msw-nav-desc {{ font-size: 14px; color: inherit; opacity: 0.78; line-height: 1.65; margin-top: 6px; }}
-        a[data-testid="stPageLink-NavLink"] {{ border-radius: 10px; font-weight: 600; }}
+        a[data-testid="stPageLink-NavLink"] {{ border-radius: 999px; font-weight: 600; }}
 
         /* ========================================= */
         /* 📱 Mobile Optimization (Max Width 640px) */
         /* ========================================= */
         @media (max-width: 640px) {{
-            /* ลด Padding ขอบจอเพื่อเพิ่มพื้นที่แสดงผล */
             .block-container, [data-testid="stMainBlockContainer"] {{ 
                 padding-top: 1.5rem !important; 
                 padding-left: 1rem !important; 
                 padding-right: 1rem !important; 
             }}
-            
-            /* ปรับขนาดการ์ด KPI ให้กะทัดรัดขึ้น ไม่กินพื้นที่แนวตั้ง */
             .msw-kpi {{ min-height: auto; padding: 14px 16px; }}
             .msw-kpi-value {{ font-size: 22px; }}
             .msw-kpi-sub {{ font-size: 12px; margin-top: 8px; }}
-            
-            /* ปรับแท็บให้กดง่ายบนจอเล็ก */
             button[data-baseweb="tab"] {{ font-size: 13.5px; padding-left: 8px; padding-right: 8px; }}
-            
             .msw-nav-card {{ min-height: auto; padding: 16px; }}
             .msw-empty {{ padding: 36px 16px; }}
             .msw-section {{ font-size: 18px !important; margin-top: 16px; }}
-            
-            /* ซ่อนเมนูด้านซ้ายเมื่ออยู่หน้าจอเล็กสุด */
             [data-testid="stSidebar"] {{ min-width: 100% !important; }}
         }}
 
-        /* แท็บเล็ต: แถวที่มี 4 คอลัมน์ขึ้นไปให้แบ่งเป็น 2 คอลัมน์ต่อแถว */
         @media (min-width: 641px) and (max-width: 992px) {{
             div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4)) {{ flex-wrap: wrap; }}
             div[data-testid="stHorizontalBlock"]:has(> div:nth-child(4)) > div {{
@@ -255,7 +253,7 @@ def inject_global_css() -> None:
             }}
         }}
         @media (prefers-reduced-motion: reduce) {{
-            .stButton > button, .stDownloadButton > button {{ transition: none; }}
+            .stButton > button, .stDownloadButton > button, .msw-kpi, .msw-nav-card {{ transition: none; }}
         }}
         </style>
         """,
@@ -265,7 +263,6 @@ def inject_global_css() -> None:
 
 # ---------------------------------------------------------------------------
 # Components
-# หมายเหตุ: ใน HTML ที่ส่งเข้า st.markdown ห้ามมีบรรทัดว่าง มิฉะนั้น Markdown จะตัด block
 # ---------------------------------------------------------------------------
 def page_header(icon: str, title: str, subtitle: str = "") -> None:
     subtitle_html = f'<div class="msw-header-sub">{subtitle}</div>' if subtitle else ""
