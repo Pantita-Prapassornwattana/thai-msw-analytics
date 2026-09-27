@@ -72,27 +72,50 @@ with tab1:
 with tab2:
     col_a, col_b = st.columns(2)
     with col_a:
-        fig_line = px.line(trend_df, x="year_be", y=selected_metric, markers=True, title=f"ปริมาณ {metric_name}")
-        fig_line.update_traces(line=dict(color=COLORS["primary"], width=4), marker=dict(size=10))
+        fig_line = px.line(
+            trend_df, x="year_be", y=selected_metric, markers=True, 
+            title=f"ปริมาณ{metric_name}",
+            labels={"year_be": "ปี พ.ศ.", selected_metric: f"{metric_name} (ตัน)"}
+        )
+        fig_line.update_traces(
+            line=dict(color=COLORS["primary"], width=4), 
+            marker=dict(size=10),
+            hovertemplate="ปี พ.ศ. %{x}<br>" + f"{metric_name}: " + "%{y:,.2f} ตัน<extra></extra>"
+        )
         style_fig(fig_line)
         st.plotly_chart(fig_line, use_container_width=True)
+        
     with col_b:
         trend_yoy = trend_df.copy()
         trend_yoy["yoy_change"] = trend_yoy[selected_metric].pct_change() * 100
         trend_yoy["color"] = trend_yoy["yoy_change"].apply(lambda x: "ลดลง" if x < 0 else "เพิ่มขึ้น")
-        fig_yoy = px.bar(trend_yoy, x="year_be", y="yoy_change", color="color", text="yoy_change", title="อัตราการเติบโต YoY (%)", color_discrete_map={"ลดลง": COLORS["success"], "เพิ่มขึ้น": COLORS["danger"]})
-        fig_yoy.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+        
+        fig_yoy = px.bar(
+            trend_yoy, x="year_be", y="yoy_change", color="color", text="yoy_change", 
+            title="อัตราการเติบโตเทียบกับปีก่อนหน้า (YoY %)", 
+            color_discrete_map={"ลดลง": COLORS["success"], "เพิ่มขึ้น": COLORS["danger"]},
+            labels={"year_be": "ปี พ.ศ.", "yoy_change": "อัตราการเติบโต (%)"}
+        )
+        fig_yoy.update_traces(
+            texttemplate="%{text:.1f}%", 
+            textposition="outside",
+            hovertemplate="ปี พ.ศ. %{x}<br>อัตราการเติบโต: %{y:+.2f}%<extra></extra>"
+        )
         style_fig(fig_yoy)
         st.plotly_chart(fig_yoy, use_container_width=True)
 
 with tab3:
+    st.markdown("##### 💡 ตารางแสดงปริมาณแยกตามปีและประเภท (หน่วย: ตัน/วัน)")
+    
+    # กลับมาใช้ background_gradient แบบเดิม (เมื่อมี matplotlib บนระบบแล้ว จะทำงานได้ปกติและไล่สีสวยงามเหมือนเดิมครับ)
     st.dataframe(
-        comp_df.style.background_gradient(cmap='Purples', subset=['ขยะที่เกิดขึ้น'])
+        comp_df.style
+               .background_gradient(cmap='Purples', subset=['ขยะที่เกิดขึ้น'])
                .background_gradient(cmap='Greens', subset=['นำกลับมาใช้ประโยชน์'])
                .background_gradient(cmap='Blues', subset=['กำจัดถูกต้อง'])
                .background_gradient(cmap='Reds', subset=['กำจัดไม่ถูกต้อง'])
                .format("{:,.2f}", subset=["ขยะที่เกิดขึ้น", "นำกลับมาใช้ประโยชน์", "กำจัดถูกต้อง", "กำจัดไม่ถูกต้อง"]),
         use_container_width=True, hide_index=True
-    )
+    )  
 
 footer("Time-Series Analytics")
