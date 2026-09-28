@@ -16,6 +16,7 @@ pages = [
     st.Page(page_path("Spatial"), title="เชิงพื้นที่", icon="🗺️", url_path="spatial"),
     st.Page(page_path("ML_Analytics"), title="จัดกลุ่มด้วย ML", icon="🤖", url_path="ml-analytics"),
     st.Page(page_path("Explorer"), title="ค้นหาและส่งออก", icon="🔍", url_path="explorer"),
+    st.Page(page_path("Poster"), title="โปสเตอร์โครงการ", icon="🖼️", url_path="poster"), # <-- เพิ่มบรรทัดนี้เข้าไปครับ
 ]
 
 st.navigation(pages).run()
