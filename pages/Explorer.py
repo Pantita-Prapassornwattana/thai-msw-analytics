@@ -1,13 +1,36 @@
 import pandas as pd
 import streamlit as st
 from utils import load_clean_data
-from theme import page_header, section_title, kpi_card, empty_state, footer, COLORS
+from theme import inject_global_css, page_header, section_title, kpi_card, empty_state, footer, COLORS
+
+inject_global_css()
 
 with st.spinner("กำลังโหลดข้อมูล..."):
     df = load_clean_data()
 
 if df.empty:
     empty_state()
+
+# 🎨 ป้าย Tag ใน Sidebar: สีเขียวทึบ ตัวหนังสือและปุ่ม X สีขาว มุมมนเล็กน้อยแบบ default ของ Streamlit
+# หมายเหตุ: .st-emotion-cache-197vr8o คือคลาสของป้ายใน Streamlit 1.62.0 (ตรวจจาก DevTools ในโหมดสว่าง)
+# ชื่อคลาสนี้อาจต่างกันในโหมดมืด/หลังอัปเดต Streamlit — ถ้าป้ายกลับเป็นสีแดง ให้ inspect หาชื่อคลาสใหม่
+st.markdown("""
+<style>
+    section[data-testid="stSidebar"] .st-emotion-cache-197vr8o,
+    section[data-testid="stSidebar"] div.stMultiSelect div:has(> span[title]) {
+        background-color: #10B981 !important;
+        border-radius: 0.375rem !important;
+    }
+    section[data-testid="stSidebar"] .st-emotion-cache-197vr8o span,
+    section[data-testid="stSidebar"] div.stMultiSelect div:has(> span[title]) span {
+        color: #FFFFFF !important;
+    }
+    section[data-testid="stSidebar"] .st-emotion-cache-197vr8o svg,
+    section[data-testid="stSidebar"] div.stMultiSelect div:has(> span[title]) svg {
+        fill: #FFFFFF !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 page_header("🔍", "Data Search & Export (ค้นหาและดาวน์โหลดข้อมูล)", "ค้นหาข้อมูลดิบรายจังหวัด จัดเรียง กรองตามเงื่อนไข และดาวน์โหลดเป็นไฟล์ CSV")
 
