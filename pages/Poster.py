@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from theme import page_header, section_title, info_card, footer, COLORS
+from theme import page_header, section_title, footer
 
 # =========================
 # Page Configuration
@@ -47,9 +47,6 @@ else:
     st.info("💡 วิธีแก้ไข: นำไฟล์รูปภาพ PNG ของคุณมาวางไว้ที่โฟลเดอร์หลัก แล้วตั้งชื่อว่า `poster.png` ครับ")
 
 st.write("")
-
-# คำแนะนำเพิ่มเติมท้ายหน้า
-info_card("💡", "คำแนะนำเพิ่มเติม", "คุณสามารถดาวน์โหลดโปสเตอร์เพื่อนำไปใช้ในการนำเสนอผลงาน (Presentation) หรือเผยแพร่ต่อได้ทันที", color=COLORS["primary"])
 
 # =========================
 # Footer
